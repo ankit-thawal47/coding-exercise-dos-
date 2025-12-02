@@ -1,6 +1,15 @@
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: production_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - production_network
+
   mongodb:
     image: mongo:7.0
     container_name: production_mongo
@@ -24,14 +33,36 @@ services:
       - "8000:8000"
     environment:
       MONGODB_URL: mongodb://admin:pass1234@mongodb:27017/production?authSource=admin
+      REDIS_URL: redis://redis:6379/0
       CORS_ORIGINS: http://localhost:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     depends_on:
       - mongodb
+      - redis
     volumes:
       - ./backend:/app
+      - ./data:/app/data
     networks:
       - production_network
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  celery_worker:
+    build: ./backend
+    container_name: production_celery_worker
+    restart: always
+    environment:
+      MONGODB_URL: mongodb://admin:pass1234@mongodb:27017/production?authSource=admin
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./backend:/app
+      - ./data:/app/data
+    networks:
+      - production_network
+    command: celery -A celery_app worker --loglevel=info
 
   frontend:
     build: ./frontend

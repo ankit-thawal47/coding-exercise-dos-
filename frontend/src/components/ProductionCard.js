@@ -1,6 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ProductionItemModal from './ProductionItemModal';
 
 const ProductionCard = ({ item }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleViewDetails = async () => {
+    setIsLoading(true);
+    try {
+      const apiUrl = process.env.REACT_APP_API_URL || '';
+      const response = await fetch(`${apiUrl}/api/production-items/${item.id}`);
+      if (response.ok) {
+        const itemDetails = await response.json();
+        setSelectedItem(itemDetails);
+        setIsModalOpen(true);
+      } else {
+        console.error('Failed to fetch item details');
+        alert('Failed to load item details');
+      }
+    } catch (error) {
+      console.error('Error fetching item details:', error);
+      alert('Error loading item details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedItem(null);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
@@ -27,6 +58,7 @@ const ProductionCard = ({ item }) => {
   };
 
   return (
+    <>
     <div className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6">
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
@@ -78,11 +110,23 @@ const ProductionCard = ({ item }) => {
 
       {/* Actions */}
       <div className="mt-4 pt-4 border-t border-gray-200">
-        <button className="w-full text-sm text-primary-600 hover:text-primary-500 font-medium">
-          View Details →
+        <button 
+          onClick={handleViewDetails}
+          disabled={isLoading}
+          className="w-full text-sm text-primary-600 hover:text-primary-500 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoading ? 'Loading...' : 'View Details →'}
         </button>
       </div>
     </div>
+    
+    {/* Modal */}
+    <ProductionItemModal 
+      item={selectedItem}
+      isOpen={isModalOpen}
+      onClose={handleCloseModal}
+    />
+    </>
   );
 };
 
