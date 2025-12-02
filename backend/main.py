@@ -12,6 +12,8 @@ from fastapi.responses import JSONResponse
 from tasks import parse_excel_file
 from db_client import mongo_client
 from celery_app import celery_app
+from bson import ObjectId, errors
+
 
 
 # Configure logging
@@ -208,29 +210,21 @@ async def get_production_items(
 
 @app.get("/api/production-items/{item_id}")
 async def get_production_item(item_id: str):
-    """
-    Get a specific production item by ID
-    """
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not available")
     
     try:
-        # Convert string ID to ObjectId if it's a valid ObjectId format
-        from bson import ObjectId, errors
         try:
             query = {"_id": ObjectId(item_id)}
         except errors.InvalidId:
-            # If not a valid ObjectId, search by order_id field
             query = {"order_id": item_id}
         
         item = await db.production_orders.find_one(query)
         if not item:
             raise HTTPException(status_code=404, detail="Production item not found")
         
-        # Convert ObjectId to string for JSON serialization
         item["id"] = str(item.pop("_id"))
         
-        # Format response to match frontend expectations
         return {
             "id": item["id"],
             "order_number": item.get("order_id", ""),
@@ -259,15 +253,12 @@ async def get_production_item(item_id: str):
 
 @app.delete("/api/production-items/{item_id}")
 async def delete_production_item(item_id: str):
-    """
-    Delete a production item
-    """
+
     if db is None:
         raise HTTPException(status_code=500, detail="Database connection not available")
     
     try:
         # Convert string ID to ObjectId if it's a valid ObjectId format
-        from bson import ObjectId, errors
         try:
             query = {"_id": ObjectId(item_id)}
         except errors.InvalidId:
