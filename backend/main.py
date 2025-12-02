@@ -95,6 +95,13 @@ async def upload_file(file: UploadFile = File(...)):
         )
 
     # TODO: Implement file parsing logic
+
+    # async flow
+    # create TASK to parse
+    # add it to DB and to the QUEUE
+    # send the confirmation response to UI
+    # Worker's pick up the task and perform the parsing logic
+
     # For now, return a placeholder response
     return JSONResponse(
         status_code=200,
